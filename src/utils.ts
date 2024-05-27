@@ -95,7 +95,7 @@ export const cropTranslate = (layer: Layer, dx: number, dy: number): Partial<Lay
 }
 
 export const removeLayerBackground = ({content}: Layer): Promise<Partial<Layer>> => {
-  return removeBackground(content).then(blob => {
+  return removeBackground(content, {proxyToWorker: true}).then(blob => {
     return new Promise<Partial<Layer>>(resolve => {
       const reader = new FileReader()
       reader.onloadend = () => resolve({content: reader.result as string})
@@ -168,6 +168,7 @@ export const zipPack = (packId: string) => (
       title: pack.title,
       author: pack.author,
       tags: pack.tags,
+      stickerIds: pack.stickerIds,
       emojis: stickers.reduce((acc, {id, emoji}) => {
         acc[id] = emoji
         return acc
