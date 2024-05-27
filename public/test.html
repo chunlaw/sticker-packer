@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <title>Vite + React + TS</title>
+    <script type="text/javascript">
+      function init() {
+        var ctx = canvas123.getContext('2d'),
+            img = new Image;
+
+        img.onload = draw;
+        img.src = "/clean.png";
+        img.setAttribute('crossorigin', 'anonymous')
+
+        function draw() {
+
+          var dArr = [-1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1], // offset array
+              s = 30,  // thickness scale
+              i = 0,  // iterator
+              x = 0,  // final position
+              y = 0;
+          
+          // draw images at offsets from the array scaled by s
+          for(; i < dArr.length; i += 2)
+            ctx.drawImage(img, x + dArr[i]*s, y + dArr[i+1]*s);
+          
+          // fill with color
+          ctx.globalCompositeOperation = "source-in";
+          ctx.fillStyle = "rgba(0, 0, 255, 0.5)";
+          ctx.fillRect(0,0,canvas123.width, canvas123.height);
+          
+          // draw original image in normal mode
+          ctx.globalCompositeOperation = "source-over";
+          ctx.drawImage(img, x, y);
+          console.log(canvas123.toDataURL())
+        }
+      }
+    </script>
+  </head>
+  <body onload="init();">
+    <canvas id="canvas123" width=500 height=500></canvas>
+  </body>
+</html>

@@ -1,0 +1,194 @@
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Stores, getStoreData, initDB, removeStoreData, saveData } from "../db";
+import { useParams } from "react-router-dom";
+import { Pack } from "../types";
+import { zipPack } from "../utils";
+import { saveAs } from "file-saver";
+
+interface AppContextState {
+  isDBReady: boolean;
+  pack: Pack;
+}
+
+interface AppContextValue extends AppContextState {
+  setPackTitle: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setPackAuthor: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setPackTags: (tags: string[]) => void;
+  removeSticker: (stickerId: string) => void;
+  downloadPack: (pack: Pack) => void;
+}
+
+const AppContext = React.createContext({} as AppContextValue);
+
+export const AppContextProvider = ({ children }: { children: ReactNode }) => {
+  const [state, setState] = useState<AppContextState>(DEFAULT_STATE);
+  const { packId, stickerId } = useParams();
+
+  const setPackTitle = useCallback(
+    ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => {
+      setState((prev) => {
+        const pack = {
+          ...prev.pack,
+          title: value,
+        };
+        saveData<Pack>(Stores.Packs, pack);
+        return {
+          ...prev,
+          pack,
+        };
+      });
+    },
+    []
+  );
+
+  const setPackAuthor = useCallback(
+    ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => {
+      setState((prev) => {
+        const pack = {
+          ...prev.pack,
+          author: value,
+        };
+        saveData<Pack>(Stores.Packs, pack);
+        return {
+          ...prev,
+          pack,
+        };
+      });
+    },
+    []
+  );
+
+  const setPackTags = useCallback((tags: string[]) => {
+    setState((prev) => {
+      const pack = {
+        ...prev.pack,
+        tags,
+      };
+      saveData<Pack>(Stores.Packs, pack);
+      return {
+        ...prev,
+        pack,
+      };
+    });
+  }, []);
+
+  const removeSticker = useCallback((stickerId: string) => {
+    setState((prev) => {
+      const pack: Pack = {
+        ...prev.pack,
+        stickerIds: prev.pack.stickerIds.filter((v) => v !== stickerId),
+      };
+      saveData<Pack>(Stores.Packs, pack).then(() => {
+        removeStoreData(Stores.Stickers, stickerId);
+      });
+      return {
+        ...prev,
+        pack,
+      };
+    });
+  }, []);
+
+  const downloadPack = useCallback((pack: Pack) => {
+    zipPack(pack.id).then((blob) => {
+      saveAs(blob, `${pack.title || pack.id}.zip`);
+    });
+  }, []);
+
+  useEffect(() => {
+    initDB().then((isDBReady) => {
+      setState((prev) => ({ ...prev, isDBReady }));
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!state.isDBReady) {
+      return;
+    }
+    if (packId !== undefined && state.pack.id !== packId) {
+      getStoreData<Pack>(Stores.Packs, packId)
+        .then((pack) => {
+          setState((prev) => ({
+            ...prev,
+            pack,
+          }));
+        })
+        .catch(() => {
+          setState((prev) => ({
+            ...prev,
+            pack: {
+              ...prev.pack,
+              id: packId,
+            },
+          }));
+        });
+    } else if (state.pack.id === packId && stickerId !== undefined) {
+      setState((prev) => {
+        if (prev.pack.stickerIds.includes(stickerId)) return prev;
+        const pack = {
+          ...prev.pack,
+          stickerIds: [...prev.pack.stickerIds, stickerId],
+        };
+        saveData<Pack>(Stores.Packs, pack);
+        return {
+          ...prev,
+          pack,
+        };
+      });
+    }
+  }, [state.isDBReady, packId, stickerId, state.pack.id]);
+
+  useEffect(() => {
+    if ( packId === undefined ) {
+      setState(prev => ({
+        ...prev,
+        pack: JSON.parse(JSON.stringify(DEFAULT_STATE)).pack
+      }))
+    }
+  }, [packId])
+
+  const contextValue = useMemo<AppContextValue>(
+    () => ({
+      ...state,
+      setPackTitle,
+      setPackAuthor,
+      setPackTags,
+      removeSticker,
+      downloadPack,
+    }),
+    [
+      state,
+      setPackAuthor,
+      setPackTitle,
+      setPackTags,
+      removeSticker,
+      downloadPack,
+    ]
+  );
+
+  if (!state.isDBReady) {
+    return <></>;
+  }
+
+  return (
+    <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
+  );
+};
+
+export default AppContext;
+
+const DEFAULT_STATE: AppContextState = {
+  isDBReady: false,
+  pack: {
+    id: "",
+    title: "",
+    author: "",
+    stickerIds: [],
+    tags: [],
+  },
+};
