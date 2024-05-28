@@ -168,11 +168,10 @@ export const zipPack = (packId: string) => (
       title: pack.title,
       author: pack.author,
       tags: pack.tags,
-      stickerIds: pack.stickerIds,
-      emojis: stickers.reduce((acc, {id, emoji}) => {
-        acc[id] = emoji
-        return acc
-      }, {} as Record<string, string>)
+      stickers: stickers.map((({id, emoji}) => ({
+        file: `${id}.png`,
+        emoji,
+      })))
     }))
     const stickersFolder = zip.folder('stickers')
     for ( const sticker of stickers ) {
