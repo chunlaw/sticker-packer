@@ -13,13 +13,14 @@ import { saveAs } from "file-saver";
 
 interface AppContextState {
   isDBReady: boolean;
+  isBatchProcessing: boolean;
   pack: Pack;
 }
 
 interface AppContextValue extends AppContextState {
-  setPackTitle: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setPackAuthor: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setPackTags: (tags: string[]) => void;
+  setIsBatchProcessing: (isBatchProcessing: boolean) => void;
+  setPackField: (field: keyof Pack, value: any) => void;
+  addStickers: (stickerIds: string[]) => void;
   removeSticker: (stickerId: string) => void;
   downloadPack: (pack: Pack) => void;
 }
@@ -30,45 +31,33 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AppContextState>(DEFAULT_STATE);
   const { packId, stickerId } = useParams();
 
-  const setPackTitle = useCallback(
-    ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => {
-      setState((prev) => {
-        const pack = {
-          ...prev.pack,
-          title: value,
-        };
-        saveData<Pack>(Stores.Packs, pack);
-        return {
-          ...prev,
-          pack,
-        };
-      });
-    },
-    []
-  );
+  const setIsBatchProcessing = useCallback((v: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      isBatchProcessing: v,
+    }));
+  }, []);
 
-  const setPackAuthor = useCallback(
-    ({ target: { value } }: React.ChangeEvent<HTMLInputElement>) => {
-      setState((prev) => {
-        const pack = {
-          ...prev.pack,
-          author: value,
-        };
-        saveData<Pack>(Stores.Packs, pack);
-        return {
-          ...prev,
-          pack,
-        };
-      });
-    },
-    []
-  );
-
-  const setPackTags = useCallback((tags: string[]) => {
+  const setPackField = useCallback((field: keyof Pack, value: any) => {
     setState((prev) => {
       const pack = {
         ...prev.pack,
-        tags,
+        [field]: value,
+      };
+      saveData<Pack>(Stores.Packs, pack);
+      return {
+        ...prev,
+        pack,
+      };
+    });
+  }, []);
+
+  const addStickers = useCallback((stickerIds: string[]) => {
+    setState((prev) => {
+      const set = new Set([...prev.pack.stickerIds, ...stickerIds]);
+      const pack: Pack = {
+        ...prev.pack,
+        stickerIds: Array.from(set),
       };
       saveData<Pack>(Stores.Packs, pack);
       return {
@@ -144,30 +133,30 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   }, [state.isDBReady, packId, stickerId, state.pack.id]);
 
   useEffect(() => {
-    if ( packId === undefined ) {
-      setState(prev => ({
+    if (packId === undefined) {
+      setState((prev) => ({
         ...prev,
-        pack: JSON.parse(JSON.stringify(DEFAULT_STATE)).pack
-      }))
+        pack: JSON.parse(JSON.stringify(DEFAULT_STATE)).pack,
+      }));
     }
-  }, [packId])
+  }, [packId]);
 
   const contextValue = useMemo<AppContextValue>(
     () => ({
       ...state,
-      setPackTitle,
-      setPackAuthor,
-      setPackTags,
+      setIsBatchProcessing,
+      setPackField,
       removeSticker,
       downloadPack,
+      addStickers,
     }),
     [
       state,
-      setPackAuthor,
-      setPackTitle,
-      setPackTags,
+      setIsBatchProcessing,
+      setPackField,
       removeSticker,
       downloadPack,
+      addStickers,
     ]
   );
 
@@ -184,6 +173,7 @@ export default AppContext;
 
 const DEFAULT_STATE: AppContextState = {
   isDBReady: false,
+  isBatchProcessing: false,
   pack: {
     id: "",
     title: "",

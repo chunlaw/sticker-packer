@@ -10,7 +10,7 @@ import {
 } from "@mui/icons-material";
 import EmojiPicker from "@emoji-mart/react";
 import { Data } from "emoji-mart";
-import { getImageFromLayers } from "../../utils";
+import { getImageFromLayers, getLayersFromImgFiles } from "../../utils";
 import { saveAs } from "file-saver";
 
 const Panel = () => {
@@ -36,19 +36,7 @@ const Panel = () => {
 
   const getImageBase64 = useCallback(() => {
     if (fileUploader.current?.files) {
-      Promise.all(
-        Array.from(fileUploader.current?.files).map((file) => {
-          const reader = new FileReader();
-          return new Promise<string>((resolve) => {
-            reader.onload = function () {
-              resolve(reader.result as string);
-            };
-            if (fileUploader.current?.files) {
-              reader.readAsDataURL(file);
-            }
-          });
-        })
-      ).then((base64s) => {
+      getLayersFromImgFiles(fileUploader.current?.files).then((base64s) => {
         base64s.map((base64) => addLayer(base64));
         fileUploader.current!.value = "";
       });
