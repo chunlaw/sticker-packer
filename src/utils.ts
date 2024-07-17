@@ -142,12 +142,14 @@ export const getImageFromLayers = async (layers: Layer[]) => {
   base.innerHTML = "";
   base.style.width = "500px"
   base.style.height = "500px"
-  base.style.position = "absolute"
+  base.style.position = "relative"
   for ( const layer of layers ) {
     const layerDiv = document.createElement("div")
     layerDiv.style.width = `${layer.width}px`
     layerDiv.style.height = `${layer.height}px`
     layerDiv.style.position = "absolute"
+    layerDiv.style.left = `${layer.left}px`
+    layerDiv.style.top = `${layer.top}px`
     layerDiv.style.backgroundRepeat = "no-repeat"
     layerDiv.style.backgroundImage = `url(${layer.content})`
     layerDiv.style.backgroundSize = `${layer._width / layer.croppedWidth * layer.width}px ${layer._height / layer.croppedHeight * layer.height}px`
